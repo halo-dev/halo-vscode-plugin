@@ -1,7 +1,12 @@
 import { AxiosPromise } from "axios";
-import service from "../util/service";
+import service from "../config/service";
 
-const baseUrl = "/api/admin/posts";
+export interface BaseResponse<T> {
+  status: number;
+  message: string;
+  devMessage?: string;
+  data?: T;
+}
 
 export enum PostStatus {
   PUBLISHED,
@@ -10,9 +15,23 @@ export enum PostStatus {
 }
 
 export interface Pageable {
-  page: number;
+  page?: number;
+  size?: number;
+  sort?: string[];
+}
+
+export interface QueryParam extends Pageable {
+  categoryId?: number;
+  keyword?: string;
+  status?: PostStatus;
+}
+
+export interface PageResponse<T> {
+  number: number;
   size: number;
-  sort: string;
+  totalElements: number;
+  totalPages: number;
+  content: T[];
 }
 
 export interface PostList {
@@ -31,29 +50,48 @@ export interface Post extends PostList {
   formatContent: string;
 }
 
-interface IPostApi {
-  list(pageable: Pageable): AxiosPromise<PostList>;
-  get(id: number): AxiosPromise<Post>;
-  update(postId: number, updatedPost: Post): AxiosPromise<Post>;
+export interface IPostApi {
+  list(
+    queryParam: QueryParam
+  ): AxiosPromise<BaseResponse<PageResponse<PostList>>>;
+  get(id: number): AxiosPromise<BaseResponse<Post>>;
+  update(id: number, updatedPost: Post): AxiosPromise<BaseResponse<Post>>;
 }
 
-class PostApi implements IPostApi {
-  list(pageable: Pageable): AxiosPromise<PostList> {
+export class PostApi implements IPostApi {
+  private readonly baseUrl: string;
+
+  constructor(domainUrl: string) {
+    if (!domainUrl) {
+      throw new Error("Domain url must not be blank");
+    }
+    if (domainUrl.endsWith("/")) {
+      domainUrl = domainUrl.substring(0, domainUrl.length - 2);
+    }
+    this.baseUrl = domainUrl + "/api/admin/posts";
+    console.log("Build post base url: " + this.baseUrl);
+  }
+
+  list(
+    queryParam: QueryParam
+  ): AxiosPromise<BaseResponse<PageResponse<PostList>>> {
     return service({
-      url: baseUrl,
-      params: pageable,
+      url: this.baseUrl,
+      params: queryParam,
       method: "get"
     });
   }
-  get(id: number): AxiosPromise<Post> {
+  get(id: number): AxiosPromise<BaseResponse<Post>> {
     return service({
-      url: `${baseUrl}/${id}`,
+      url: `${this.baseUrl}/${id}`,
       method: "get"
     });
   }
-  update(postId: number, updatedPost: Post): AxiosPromise<Post> {
-    throw new Error("Method not implemented.");
+  update(id: number, updatedPost: Post): AxiosPromise<BaseResponse<Post>> {
+    return service({
+      url: `${this.baseUrl}/${id}`,
+      data: updatedPost,
+      method: "post"
+    });
   }
 }
-
-export default PostApi;

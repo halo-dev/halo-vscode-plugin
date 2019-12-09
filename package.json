@@ -10,14 +10,24 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:halo.clear"
+		"onCommand:halo.config.check",
+		"onCommand:halo.config.reload",
+		"onCommand:halo.post.list"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "halo.clear",
-				"title": "Halo clear"
+				"command": "halo.config.check",
+				"title": "Halo configuration check"
+			},
+			{
+				"command": "halo.config.reload",
+				"title": "Halo configuration reload"
+			},
+			{
+				"command": "halo.post.list",
+				"title": "Halo post list"
 			}
 		]
 	},
@@ -40,6 +50,7 @@
 		"vscode-test": "^1.2.2"
 	},
 	"dependencies": {
-		"axios": "^0.19.0"
+		"axios": "^0.19.0",
+		"moment": "^2.24.0"
 	}
 }
