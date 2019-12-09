@@ -161,7 +161,7 @@ export class Halo implements IHalo {
             if (!quickPickItem) {
               return;
             }
-            const postId = parseInt(quickPickItem.label.trim());
+            const postId = (<any>quickPickItem).id;
             console.log("Opening post with id: " + postId);
             this.handleSelectedPost(postId);
           });
@@ -206,10 +206,6 @@ export class Halo implements IHalo {
       vscode.workspace
         .applyEdit(workspaceEdit)
         .then(edited => {
-          // if (!edited) {
-          //   console.log("Failed to create post file", postUri);
-          //   throw new Error("创建文章文件失败");
-          // }
           console.log("Created post file", postUri);
 
           return vscode.workspace.openTextDocument(postUri);
@@ -218,12 +214,21 @@ export class Halo implements IHalo {
           return vscode.window.showTextDocument(postDocument);
         })
         .then(postEditor => {
-          postEditor.edit(editBuilder => {
-            const fullRange = this.getFullRange(postEditor.document);
-            editBuilder.delete(fullRange);
-            editBuilder.insert(new vscode.Position(0, 0), post.originalContent);
-            postEditor.document.save();
-          });
+          postEditor
+            .edit(editBuilder => {
+              const fullRange = this.getFullRange(postEditor.document);
+              editBuilder.delete(fullRange);
+              editBuilder.insert(
+                new vscode.Position(0, 0),
+                post.originalContent
+              );
+            })
+            .then(edited => {
+              if (edited) {
+                console.log("Saving document");
+                postEditor.document.save();
+              }
+            });
         });
     });
   }
@@ -234,9 +239,10 @@ export class Halo implements IHalo {
     }
     return posts.map(post => {
       return <vscode.QuickPickItem>{
-        label: "" + post.id + "\t",
-        description: post.title,
-        detail: timeAgo(post.editTime)
+        label: `$(gist)\t${post.title}`,
+        description: `最后编辑: ${timeAgo(post.editTime)}`,
+        // detail: post.summary,
+        id: post.id
       };
     });
   }
