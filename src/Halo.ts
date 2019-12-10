@@ -5,18 +5,37 @@ import { timeAgo } from "./util";
 
 export interface IHalo {
   getConfig(): Promise<HaloConfig>;
-  resetConfig(): void;
+  resetHalo(): void;
   testConfig(): boolean;
   listPost(): Promise<PostList[]>;
-  openPostLists(): void;
+  openPostLists(): Promise<void>;
 }
 
 export class Halo implements IHalo {
   private readonly haloConfigName: string = "halo.json";
 
+  private readonly postCache = new Map<string, PostList>();
+
   private haloConfig?: HaloConfig = undefined;
 
   private postApi?: PostApi = undefined;
+
+  clearCache() {
+    this.postCache.clear();
+  }
+
+  cachePost(posts: PostList[]) {
+    // Clear cache before caching
+    this.clearCache();
+    
+    if (!posts) {
+      return;
+    }
+
+    posts.forEach(post => {
+      this.postCache.set(post.title, Object.assign({}, post));
+    });
+  }
 
   async getPostApi(): Promise<PostApi> {
     if (this.postApi) {
@@ -85,9 +104,10 @@ export class Halo implements IHalo {
     });
   }
 
-  resetConfig(): void {
+  resetHalo(): void {
     this.haloConfig = undefined;
     this.postApi = undefined;
+    this.clearCache();
     console.log("Reset config");
   }
 
@@ -116,7 +136,7 @@ export class Halo implements IHalo {
     console.log("Halo config Watcher", fileSystemWatcher);
     fileSystemWatcher.onDidChange(listener => {
       console.log(`${this.haloConfigName} file has been changed`);
-      this.resetConfig();
+      this.resetHalo();
     });
   }
 
@@ -135,7 +155,11 @@ export class Halo implements IHalo {
           if (!response.data.data) {
             throw new Error("获取文章列表失败");
           }
-          resolve(response.data.data.content);
+          return response.data.data.content;
+        })
+        .then(posts => {
+          this.cachePost(posts);
+          resolve(posts);
         })
         .catch(error => {
           reject(error);
@@ -144,8 +168,10 @@ export class Halo implements IHalo {
   }
 
   openPostLists() {
-    this.listPost()
-      .then(this.convertPostsToQuickPickItems)
+    return this.listPost()
+      .then(posts => {
+        return this.convertPostsToQuickPickItems(posts);
+      })
       .then(quickPickItems => {
         const option: vscode.QuickPickOptions = {
           placeHolder: "请选择需要编辑的文章",
@@ -226,14 +252,20 @@ export class Halo implements IHalo {
             .then(edited => {
               if (edited) {
                 console.log("Saving document");
-                postEditor.document.save();
+                postEditor.document.save().then(saved => {
+                  if (!saved) {
+                    console.log("Failed to save document");
+                  } else {
+                    console.log("Saved document");
+                  }
+                });
               }
             });
         });
     });
   }
 
-  convertPostsToQuickPickItems(posts: PostList[]) {
+  convertPostsToQuickPickItems(posts: PostList[]): vscode.QuickPickItem[] {
     if (!posts) {
       return [];
     }

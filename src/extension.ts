@@ -20,7 +20,9 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.commands.registerCommand("halo.post.list", () => {
-      halo.openPostLists();
+      halo.openPostLists().catch(error => {
+        vscode.window.showErrorMessage(error.message);
+      });
     })
   );
 }
@@ -39,7 +41,7 @@ function checkHaloConfig(halo: IHalo) {
 }
 
 function reloadHaloConfig(halo: IHalo) {
-  halo.resetConfig();
+  halo.resetHalo();
   checkHaloConfig(halo);
 }
 
