@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { Post, PostApi, PostList, QueryParam } from "./api/post";
+import * as path from "path";
+import { Post, PostApi, PostList, QueryParam, PostStatus } from "./api/post";
 import { HaloConfig } from "./config/halo-config";
 import { timeAgo } from "./util";
 
@@ -9,12 +10,19 @@ export interface IHalo {
   testConfig(): boolean;
   listPost(): Promise<PostList[]>;
   openPostLists(): Promise<void>;
+  handleOnWillSaveTextDocument(
+    textDocumentWillSaveEvent: vscode.TextDocumentWillSaveEvent
+  ): Promise<Post>;
+  handlePublish(): void;
 }
 
 export class Halo implements IHalo {
   private readonly haloConfigName: string = "halo.json";
 
-  private readonly postCache = new Map<string, PostList>();
+  private readonly postCache: Map<string, PostList> = new Map<
+    string,
+    PostList
+  >();
 
   private haloConfig?: HaloConfig = undefined;
 
@@ -27,7 +35,7 @@ export class Halo implements IHalo {
   cachePost(posts: PostList[]) {
     // Clear cache before caching
     this.clearCache();
-    
+
     if (!posts) {
       return;
     }
@@ -35,6 +43,14 @@ export class Halo implements IHalo {
     posts.forEach(post => {
       this.postCache.set(post.title, Object.assign({}, post));
     });
+  }
+
+  async getPostCache() {
+    if (this.postCache.size === 0) {
+      const posts = await this.listPost();
+      this.cachePost(posts);
+    }
+    return this.postCache;
   }
 
   async getPostApi(): Promise<PostApi> {
@@ -134,9 +150,67 @@ export class Halo implements IHalo {
       `**/${this.haloConfigName}`
     );
     console.log("Halo config Watcher", fileSystemWatcher);
-    fileSystemWatcher.onDidChange(listener => {
-      console.log(`${this.haloConfigName} file has been changed`);
+    fileSystemWatcher.onDidChange(uri => {
+      console.log(`${uri.fsPath} file has been changed`);
       this.resetHalo();
+    });
+  }
+
+  handleOnWillSaveTextDocument(
+    textDocumentWillSaveEvent: vscode.TextDocumentWillSaveEvent
+  ): Promise<Post> {
+    return new Promise<Post>((resolve, reject) => {
+      if (
+        textDocumentWillSaveEvent.reason !==
+        vscode.TextDocumentSaveReason.Manual
+      ) {
+        resolve();
+        return;
+      }
+      const document = textDocumentWillSaveEvent.document;
+
+      let title = this.getTitle(document.fileName);
+
+      console.log(`Title: ${title}`);
+
+      this.getPostCache()
+        .then(postCache => {
+          if (!title) {
+            // Ignore it
+            resolve();
+            return;
+          }
+          const post = postCache.get(title);
+          if (!post) {
+            resolve();
+            return;
+          }
+
+          return post;
+        })
+        .then(post => {
+          if (!post) {
+            return;
+          }
+
+          console.log("Updating post", post);
+          return this.getPostApi()
+            .then(postApi => {
+              // TODO Update post
+              const content = document.getText(this.getFullRange(document));
+              return postApi.updateContent(post.id, content);
+            })
+            .then(response => {
+              return response.data.data;
+            })
+            .then(updatedPost => {
+              console.log("Updated post", updatedPost);
+              resolve(updatedPost);
+            });
+        })
+        .catch(error => {
+          reject(error);
+        });
     });
   }
 
@@ -158,10 +232,10 @@ export class Halo implements IHalo {
           return response.data.data.content;
         })
         .then(posts => {
-          this.cachePost(posts);
           resolve(posts);
         })
         .catch(error => {
+          this.clearCache();
           reject(error);
         });
     });
@@ -216,6 +290,74 @@ export class Halo implements IHalo {
     });
   }
 
+  handlePublish() {
+    // Get current active editor
+    let editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      return;
+    }
+
+    let title = this.getTitle(editor.document.fileName);
+
+    console.log("Got title", title);
+    if (!title) {
+      return;
+    }
+
+    // Get filename
+
+    this.getPostCache()
+      .then(postCache => {
+        if (!title) {
+          return;
+        }
+        return postCache.get(title);
+      })
+      .then(post => {
+        if (!post) {
+          return;
+        }
+        console.log("Got publishing post", post);
+        if (!post) {
+          return;
+        }
+
+        console.log("Publishing post", post);
+
+        return this.publish(post.id).then(publishedPost => {
+          vscode.window.showInformationMessage("发布成功");
+        });
+      })
+      .catch(error => {
+        console.log(error.response);
+        if (error.response) {
+          vscode.window.showErrorMessage(error.response.data.message);
+        } else {
+          vscode.window.showErrorMessage(error.message);
+        }
+      });
+  }
+
+  getTitle(filename: string) {
+    let basename = path.basename(filename);
+    if (!basename.endsWith(".md")) {
+      // Ignore it
+      return null;
+    }
+
+    return basename.substring(0, basename.length - 3);
+  }
+
+  publish(postId: number) {
+    return this.getPostApi()
+      .then(postApi => {
+        return postApi.updateStatus(PostStatus.PUBLISHED, postId);
+      })
+      .then(response => {
+        return response.data.data;
+      });
+  }
+
   handleSelectedPost(id: number) {
     this.getPost(id).then(post => {
       // Create a markdown file
@@ -223,6 +365,7 @@ export class Halo implements IHalo {
       const postUri = vscode.Uri.parse(
         `${this.getRootPath()}/${post.title}.md`
       );
+
       console.log("Try to create post file", postUri);
       // Delete file, and ignore if not exists
       // workspaceEdit.deleteFile(postUri, { ignoreIfNotExists: true });
@@ -233,30 +376,33 @@ export class Halo implements IHalo {
         .applyEdit(workspaceEdit)
         .then(edited => {
           console.log("Created post file", postUri);
-
           return vscode.workspace.openTextDocument(postUri);
         })
         .then(postDocument => {
           return vscode.window.showTextDocument(postDocument);
         })
         .then(postEditor => {
+          const fullRange = this.getFullRange(postEditor.document);
+
+          if (postEditor.document.getText(fullRange) === post.originalContent) {
+            // Check content diff
+            console.log("Same content! No content will be updated");
+            return;
+          }
+
+          // Replace content
           postEditor
             .edit(editBuilder => {
-              const fullRange = this.getFullRange(postEditor.document);
-              editBuilder.delete(fullRange);
-              editBuilder.insert(
-                new vscode.Position(0, 0),
-                post.originalContent
-              );
+              editBuilder.replace(fullRange, post.originalContent);
             })
             .then(edited => {
               if (edited) {
                 console.log("Saving document");
                 postEditor.document.save().then(saved => {
-                  if (!saved) {
-                    console.log("Failed to save document");
-                  } else {
+                  if (saved) {
                     console.log("Saved document");
+                  } else {
+                    console.log("Ignored saving document");
                   }
                 });
               }

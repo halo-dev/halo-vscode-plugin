@@ -9,9 +9,9 @@ export interface BaseResponse<T> {
 }
 
 export enum PostStatus {
-  PUBLISHED,
-  DRAFTED,
-  DELETED
+  PUBLISHED = "published",
+  DRAFTED = "drafted",
+  DELETED = "deleted"
 }
 
 export interface Pageable {
@@ -56,6 +56,14 @@ export interface IPostApi {
   ): AxiosPromise<BaseResponse<PageResponse<PostList>>>;
   get(id: number): AxiosPromise<BaseResponse<Post>>;
   update(id: number, updatedPost: Post): AxiosPromise<BaseResponse<Post>>;
+  updateContent(
+    id: number,
+    content: string
+  ): AxiosPromise<BaseResponse<PostList>>;
+  updateStatus(
+    status: PostStatus,
+    id: number
+  ): AxiosPromise<BaseResponse<PostList>>;
 }
 
 export class PostApi implements IPostApi {
@@ -92,6 +100,24 @@ export class PostApi implements IPostApi {
       url: `${this.baseUrl}/${id}`,
       data: updatedPost,
       method: "post"
+    });
+  }
+
+  updateContent(id: number, content: string): AxiosPromise<BaseResponse<Post>> {
+    return service({
+      url: `${this.baseUrl}/${id}/status/draft/content`,
+      data: { content: content },
+      method: "put"
+    });
+  }
+
+  updateStatus(
+    status: PostStatus,
+    id: number
+  ): AxiosPromise<BaseResponse<PostList>> {
+    return service({
+      url: `${this.baseUrl}/${id}/status/${status.toString()}`,
+      method: "put"
     });
   }
 }

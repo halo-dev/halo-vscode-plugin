@@ -12,22 +12,27 @@
 	"activationEvents": [
 		"onCommand:halo.config.check",
 		"onCommand:halo.config.reload",
-		"onCommand:halo.post.list"
+		"onCommand:halo.post.list",
+		"onCommand:halo.post.publish"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
 				"command": "halo.config.check",
-				"title": "Halo configuration check"
+				"title": "halo: configuration check"
 			},
 			{
 				"command": "halo.config.reload",
-				"title": "Halo configuration reload"
+				"title": "halo: configuration reload"
 			},
 			{
 				"command": "halo.post.list",
-				"title": "Halo post list"
+				"title": "halo: post list"
+			},
+			{
+				"command": "halo.post.publish",
+				"title": "halo: post publish"
 			}
 		]
 	},

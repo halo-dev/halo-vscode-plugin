@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { Halo, IHalo } from "./Halo";
+import * as path from "path";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log(
@@ -23,6 +24,29 @@ export function activate(context: vscode.ExtensionContext) {
       halo.openPostLists().catch(error => {
         vscode.window.showErrorMessage(error.message);
       });
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("halo.post.publish", () => {
+      halo.handlePublish();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onWillSaveTextDocument(textDocumentWillSaveEvent => {
+      halo
+        .handleOnWillSaveTextDocument(textDocumentWillSaveEvent)
+        .then(post => {
+          if (post) {
+            // Show info message
+            vscode.window.showInformationMessage("同步成功");
+          }
+        })
+        .catch(error => {
+          console.log("Failed to update post", error);
+          vscode.window.showErrorMessage(error.message);
+        });
     })
   );
 }
