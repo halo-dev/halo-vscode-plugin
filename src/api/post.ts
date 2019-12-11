@@ -24,6 +24,7 @@ export interface QueryParam extends Pageable {
   categoryId?: number;
   keyword?: string;
   status?: PostStatus;
+  more?: boolean;
 }
 
 export interface PageResponse<T> {

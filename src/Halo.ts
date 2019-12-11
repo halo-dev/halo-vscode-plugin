@@ -217,8 +217,9 @@ export class Halo implements IHalo {
   listPost(): Promise<PostList[]> {
     let queryParam: QueryParam = {
       page: 0,
-      size: 100,
-      sort: ["editTime,desc"]
+      size: 10000,
+      sort: ["editTime,desc"],
+      more: false
     };
     return new Promise((resolve, reject) => {
       this.getPostApi()
