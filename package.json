@@ -1,7 +1,7 @@
 {
-	"name": "vscode-ext-learning",
-	"displayName": "vscode-ext-learning",
-	"description": "Learning of vscode extension",
+	"name": "halo",
+	"displayName": "halo",
+	"description": "Halo vscode plugin",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.40.0"

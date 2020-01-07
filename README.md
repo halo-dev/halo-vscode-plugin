@@ -1,65 +1,43 @@
-# vscode-ext-learning README
+# Halo 插件（Halo VSCode Plugin）
 
-This is the README for your extension "vscode-ext-learning". After writing up a brief description, we recommend including the following sections.
+## 命令
 
-## Features
+### 检查配置是否合法
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+halo.config.check
 
-For example if there is an image subfolder under your extension project workspace:
+### 重新加载配置文件
 
-\!\[feature X\]\(images/feature-x.png\)
+halo.config.reload
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+### 列出文章列表
 
-## Requirements
+halo.post.list
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+### 发布文章
 
-## Extension Settings
+halo.post.publish
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+## 使用
 
-For example:
+### 创建配置文件
 
-This extension contributes the following settings:
+```json
+{
+  "blog_url": "http://127.0.0.1:8090",
+  "app_id": "xxx",
+  "app_secret": "xxxxxx"
+}
+```
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+### 键入命令
 
-## Known Issues
+使用 Ctrl + P 组合键可唤出命令输入框。
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+### 编辑文章
 
-## Release Notes
+可直接按 Ctrl + S 保存草稿，不会变更文章的状态。
 
-Users appreciate release notes as you update your extension.
+## 开发
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+直接按 F5 键即可测试插件的效果。如果修改了插件代码，只需要在另外一个窗口按 Ctrl + R 组合键重新加载插件，不需要重新运行。

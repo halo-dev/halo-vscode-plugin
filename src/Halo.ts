@@ -249,7 +249,7 @@ export class Halo implements IHalo {
       })
       .then(quickPickItems => {
         const option: vscode.QuickPickOptions = {
-          placeHolder: "请选择需要编辑的文章",
+          placeHolder: `请选择需要编辑的文章(共${quickPickItems.length}篇)`,
           matchOnDescription: true
         };
 
