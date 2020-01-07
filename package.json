@@ -3,6 +3,7 @@
 	"displayName": "halo",
 	"description": "Halo vscode plugin",
 	"version": "0.0.1",
+	"publisher": "halo-dev",
 	"engines": {
 		"vscode": "^1.40.0"
 	},
@@ -57,5 +58,9 @@
 	"dependencies": {
 		"axios": "^0.19.0",
 		"moment": "^2.24.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/halo-dev/halo-vscode-plugin"
 	}
 }
